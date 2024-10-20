@@ -1,0 +1,242 @@
+# T2 CI/CD Pipeline Configuration
+#
+# This file defines a complete CI/CD pipeline configuration for Team 2.
+# It includes trigger conditions, global settings, stage definitions, and job configurations.
+
+# ===== TRIGGER CONDITIONS =====
+on:
+  push:
+    branches:
+      - 'main'
+    paths:
+      - 'cli/**'
+      - 'tests/**'
+      - 'requirements.txt'
+      - '.github/workflows/**'
+      - 'docs/**'
+      - 'README.md'
+
+  pull_request:
+    branches:
+      - 'main'
+    paths:
+      - 'cli/**'
+      - 'tests/**'
+      - 'requirements.txt'
+      - '.github/workflows/**'
+
+# ===== GLOBAL ENVIRONMENT =====
+env:
+  DOCKER_REGISTRY: docker.io
+  ARTIFACT_UPLOAD_PATH: "/artifacts"
+
+# ===== JOB DEFINITIONS =====
+jobs:
+  # === Stage 0: Pipeline Validation ===
+  pipeline_validation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install environment and required dependencies
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install -r requirements.txt
+
+      - name: Run pipeline validation script
+        run: |
+          source venv/bin/activate
+          echo "Current directory:"
+          pwd
+          python cli/pipeline_validation.py
+
+  # === Stage 1: Build App without docker image ===
+  build:
+    runs-on: ubuntu-latest
+    needs: pipeline_validation
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python Environment
+        run: |
+          echo 'Setting up Python virtual environment...'
+          python -m venv venv
+          source venv/bin/activate
+          echo 'Virtual environment activated.'
+
+      - name: Install Dependencies
+        run: |
+          source venv/bin/activate
+          pip install -r requirements.txt
+          echo 'Dependencies installed successfully.'
+
+      - name: Build Application
+        run: |
+          echo 'Building application...'
+          # Ensure logs directory exists
+          mkdir -p logs
+          source venv/bin/activate
+          python setup.py build | tee logs/build.log
+
+      - name: Upload Build Logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: logs/build.log
+
+  # === Stage 1: Docker Run ===
+  docker-run:
+    runs-on: ubuntu-latest
+    needs: pipeline_validation
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Environment
+        run: |
+          echo 'Setting up Docker environment...'
+          mkdir -p logs  # Ensure the logs directory exists
+          docker run hhhly/cicd-base-image | tee logs/docker.log
+
+      - name: Upload Docker Logs
+        if: always()  # Ensures logs are uploaded even if the Docker command fails
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-log
+          path: logs/docker.log
+
+      ########## For future use: Self-define and push Docker image to Docker Hub ##########
+      # - name: Start Docker Container
+      # - name: Set Up Environment and Install Dependencies inside docker container
+      # - name: Build Project inside Docker container
+      # - name: Build Docker Image
+      # - name: Tag Docker Image
+      # - name: Push Docker Image to Docker Hub
+
+  # === Stage 2: Test ===
+  test:
+    runs-on: ubuntu-latest
+    needs: [build, doc]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Dependencies
+        run: |
+          echo 'Setting up virtual environment and installing dependencies'
+          python -m venv venv
+          source venv/bin/activate
+          pip install -r requirements.txt
+          pip install pytest  # Install pytest in the environment
+
+      - name: Run unit tests
+        run: |
+          echo 'Running unit tests'
+          mkdir -p logs  # Create the logs directory
+          source venv/bin/activate
+          python -m pytest tests/unit | tee logs/test.log
+        continue-on-error: true
+
+      - name: Upload Test Logs
+        if: always()  # Ensures logs are uploaded even if tests fail
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-log
+          path: logs/test.log
+
+
+  # === Stage 3: Documentation ===
+  doc:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4  # Update to the latest version
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Sphinx and Dependencies
+        run: |
+          echo 'Installing documentation dependencies'
+          pip install sphinx sphinx-rtd-theme
+
+      - name: Generate documentation
+        run: |
+          echo 'Generating documentation'
+          mkdir -p logs  # Ensure logs directory exists
+          sphinx-build -b html docs docs/_build/html | tee logs/doc.log
+
+      - name: Upload Documentation Logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: doc-log
+          path: logs/doc.log
+
+      - name: Upload Documentation Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs
+          path: docs/_build/html
+
+  # === Stage 4: Deploy to Staging and Production ===
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [ test, doc ]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Dependencies
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install -r requirements.txt
+
+      - name: Deploy to Staging and Log Output
+        run: |
+          echo 'Deploying to staging'
+          mkdir -p logs
+          source venv/bin/activate
+          python deploy.py --env staging | tee logs/deploy_staging.log
+
+      - name: Upload Staging Deployment Logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-staging-log
+          path: logs/deploy_staging.log
+
+      - name: Deploy to Production and Log Output
+        if: ${{ success() }} # Only runs if previous steps succeed
+        run: |
+          echo 'Deploying to production'
+          mkdir -p logs
+          source venv/bin/activate
+          python deploy.py --env production | tee logs/deploy_production.log
+
+      - name: Upload Production Deployment Logs
+        if: ${{ success() }} # Only runs if previous steps succeed
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-production-log
+          path: logs/deploy_production.log

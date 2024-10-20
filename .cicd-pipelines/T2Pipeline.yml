@@ -1,0 +1,200 @@
+# T2 CI/CD Pipeline Configuration
+# 
+# This file defines a complete CI/CD pipeline configuration for Team 2.
+# It includes trigger conditions, global settings, stage definitions, and job configurations.
+
+# ===== TRIGGER CONDITIONS =====
+# Define when the pipeline should be triggered
+"on":
+  # Trigger on push events
+  push:
+    branches:
+      - "main"
+    paths:
+      - 'cli/**'
+      - 'tests/**'
+      - 'requirements.txt'
+
+  # Trigger on pull request events
+  pull_request:
+    branches:
+      - "main"
+    paths:
+      - 'cli/**'
+      - 'tests/**'
+      - 'requirements.txt'
+
+# Global section: Defines properties for the entire pipeline
+global:
+  name: "T2 pipeline with prebuilt docker image running"
+    # The default Docker registry to use for all jobs
+  docker_registry: "docker.io" # This needs to be overridden with our real docker registry.
+  
+  # The default Docker image to use for all jobs
+  docker_image: "hhhly/cicd-base-image" # This needs to be overridden with our real docker image.
+
+  # This can be used as a base path in job artifact configurations
+  artifact_upload_path: "/artifacts" # This needs to be overridden with a local file path on the CI/CD runner, or it could be a remote storage location.
+
+# ===== STAGE DEFINITIONS =====
+# Custom stages override the default stages (build, test, doc, deploy)
+# Stage names must be unique, and order determines execution sequence
+stages:
+  - name: prepare
+    order: 1
+  - name: build
+    order: 2
+  - name: test
+    order: 3
+  - name: doc
+    order: 4
+  - name: deploy
+    order: 5
+
+# ===== JOB DEFINITIONS =====
+# Each job represents a specific task in the pipeline
+jobs:
+  # Job name must be unique within this pipeline
+  prepare_environment:
+    # The stage this job belongs to must match a stage name defined above.
+    stage: prepare
+
+    # !!!!!!!!!Docker image for this job (overrides the global docker_image)
+    docker_image: "prepare_image"
+
+    # Commands to execute in this job (use code in README.md file as a reference)
+    commands:
+      - "echo 'Preparing environment'"
+      - "python -m venv venv"
+      - "source venv/bin/activate"
+      - "pip install --upgrade pip"
+      - "pip install -r requirements.txt"
+
+    # Allow failure flag
+    # If true, the pipeline will continue even if this job fails
+    allow_failure: false
+    # Will add error handling in the future.
+    # - error_handling:
+    # - on_error:
+    #     code: "xxxx Failed"
+    #     action:
+    #       - log_error: "xxxx Failed"
+    #       - rollback: "previous_version"
+    #       - capture_output: "results.log"
+    #       - notify:
+    #           message: "Failed, automatic rollback"
+
+    # Artifact upload configuration 
+    artifacts:
+      # Paths of files or directories to upload as artifacts
+      paths:
+        - "venv/"
+        - "requirements.txt"
+      # When to upload artifacts (always, on_success, or on_failure)
+      when: always
+
+  # ----- Cycle Detection Test Job -----
+  # New job that creates a cycle
+    cycle_test_job:
+      stage: test
+      commands:
+        - "echo 'This job creates a cycle'"
+      dependencies:
+        - "run_integration_tests"
+
+  # ----- Build Application -----
+  build_app:
+    stage: build
+    commands:
+      - "echo 'Building application'"
+      - "source venv/bin/activate"
+      - "python setup.py build"
+    artifacts:
+      paths:
+        - "build/demo.log"
+      when: on_success
+    dependencies:
+      - "prepare_environment"
+
+  # ----- Run Unit Tests -----
+  run_unit_tests:
+    stage: test
+    # docker_image: "test"
+    commands:
+      - "echo 'Running unit tests'"
+      - "source venv/bin/activate"
+      - "python -m pytest tests/unit"
+    # Allow this job to fail without failing the entire pipeline, can set to false if needed.
+    allow_failure: true
+    # Will add error handling in the future.
+    # - error_handling:
+    # - on_error:
+    #     code: "xxxx Failed"
+    #     action:
+    #       - log_error: "xxxx Failed"
+    #       - rollback: "previous_version"
+    #       - capture_output: "results.log"
+    #       - notify:
+    #           message: "Failed, automatic rollback"
+
+    # ob dependencies
+    # This job will only start after build_app has completed
+    dependencies:
+      - "build_app"
+
+  # ----- Run Integration Tests -----
+  run_integration_tests:
+    stage: test
+    commands:
+      - "echo 'Running integration tests'"
+      - "source venv/bin/activate"
+      - "python -m pytest tests/integration"
+    dependencies:
+      - "build_app"
+      - "run_unit_tests"
+
+  # ----- Generate Documentation -----
+  generate_docs:
+    stage: doc
+    commands:
+      - "echo 'Generating documentation'"
+      - "source venv/bin/activate"
+      - "pip install sphinx"
+      - "sphinx-build -b html docs/ docs/_build"
+    artifacts:
+      paths:
+        - "docs/_build/"
+      when: on_success
+    dependencies:
+      - "build_app"
+
+  # ----- Deploy to Staging -----
+  deploy_staging:
+    stage: deploy
+    commands:
+      - "echo 'Deploying to staging'"
+      - "source venv/bin/activate"
+      - "python deploy.py --env staging"
+    dependencies:
+      - "run_unit_tests"
+      - "run_integration_tests"
+    artifacts:
+      paths:
+        - "deploy_logs/"
+        - "*.deploy.log"
+      when: always
+
+  # ----- Deploy to Production -----
+  deploy_production:
+    stage: deploy
+    commands:
+      - "echo 'Deploying to production'"
+      - "source venv/bin/activate"
+      - "python deploy.py --env production"
+    dependencies:
+      - "deploy_staging"
+    artifacts:
+      paths:
+        - "prod_deploy_logs/"
+        - "*.prod.log"
+      when: always
