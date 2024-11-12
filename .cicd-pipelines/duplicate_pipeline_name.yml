@@ -1,4 +1,4 @@
-name: "cycle detection pipeline"
+name: "T2 duplicate pipeline" # duplicate pipeline name
 
 # Global section: Defines properties for the entire pipeline
 global:
@@ -38,14 +38,14 @@ jobs:
     commands:
       - "echo 'Running unit tests'"
     allow_failure: true
-    needs: [build_app, run_integration_tests] # cycle
+    needs: [build_app]
 
   # ----- Run Integration Tests -----
   run_integration_tests:
     stage: test
     commands:
       - "echo 'Running integration tests'"
-    needs: [build_app, run_unit_tests] # cycle
+    needs: [build_app, run_unit_tests]
 
   # ----- Generate Documentation -----
   generate_docs:
