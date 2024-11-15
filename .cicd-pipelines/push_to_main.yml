@@ -22,10 +22,6 @@ jobs:
       - "mkdir -p /app"
       - "echo 'Cloning the repository'"
       - "git clone ${CI_REPOSITORY_URL} /app"
-      - "echo 'Setting up JDK 17'"
-      - "export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64"
-      - "export PATH=$JAVA_HOME/bin:$PATH"
-      - "java -version"
 
   build_project:
     stage: build
