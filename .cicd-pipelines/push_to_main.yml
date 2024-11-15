@@ -15,6 +15,16 @@ stages:
 
 jobs:
 
+  setup_project:
+    stage: setup
+    image: "hhhly/bst-base-image"
+    commands:
+      - "echo 'Cloning the repository'"
+      - "git clone https://your-repository-url.git /workspace/BinaryTree"
+    artifacts:
+      destination:
+        path: "/artifacts"
+
   build_project:
     stage: build
     image: "hhhly/bst-base-image"
@@ -22,7 +32,7 @@ jobs:
       - "echo 'Caching Maven dependencies'"
       - "mkdir -p ~/.m2/repository && echo 'Maven cache ready'"
       - "echo 'Building project'"
-      - "mvn clean install -B -f ./BinaryTree/pom.xml"
+      - "mvn clean install -B -f /workspace/BinaryTree/pom.xml"
     artifacts:
       destination:
         path: "/artifacts/build-logs"
