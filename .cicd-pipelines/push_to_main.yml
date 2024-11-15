@@ -2,7 +2,7 @@ name: Push to Main Pipeline
 
 global:
   registry: "docker.io"
-  image: java
+  image: "openjdk:17"
   workspace: 'BinaryTree/**'
   artifacts: "/artifacts"
 
@@ -17,18 +17,18 @@ jobs:
 
   setup_project:
     stage: setup
-    image: java
+    image: "openjdk:17"
     commands:
-      - "echo 'Installing dependencies'"
-      # Install Git, OpenJDK 17 (Java SDK), and Maven
-      - "apt-get update && apt-get install -y git openjdk-17-jdk maven"
+        - "echo 'Installing Git and Maven'"
+        # Install Git and Maven (if not already in the base image)
+        - "apt-get update && apt-get install -y git maven"
     artifacts:
       destination:
         path: "/artifacts"
 
   build_project:
     stage: build
-    image: java
+    image: "openjdk:17"
     commands:
       - "echo 'Caching Maven dependencies'"
       - "mkdir -p ~/.m2/repository && echo 'Maven cache ready'"
