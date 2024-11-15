@@ -112,4 +112,4 @@ jobs:
       upload:
         path:
           - "./BinaryTree/target/*.jar artifacts/jar"
-    needs: [setup_environment, build_project, unit_test, checkstyle, javadoc, static-analysis]
+    needs: [build_project, unit_test, checkstyle, javadoc, static-analysis]
