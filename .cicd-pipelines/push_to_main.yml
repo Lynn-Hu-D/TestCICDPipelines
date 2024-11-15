@@ -18,6 +18,8 @@ jobs:
   setup_environment:
     stage: setup
     commands:
+      - "echo 'Creating /app directory'"
+      - "mkdir -p /app"
       - "echo 'Cloning the repository'"
       - "git clone ${CI_REPOSITORY_URL} /app"
       - "echo 'Setting up JDK 17'"
