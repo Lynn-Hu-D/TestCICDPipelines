@@ -2,7 +2,7 @@ name: Push to Main Pipeline
 
 global:
   registry: "docker.io"
-  image: ubuntu-latest
+  image: ubuntu
   workspace: 'BinaryTree/**'
   artifacts: "/artifacts"
 
