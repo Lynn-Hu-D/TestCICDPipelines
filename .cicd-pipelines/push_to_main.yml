@@ -2,7 +2,7 @@ name: Push to Main Pipeline
 
 global:
   registry: "docker.io"
-  image: "hhhly/bst-base-image"
+  image: java
   workspace: 'BinaryTree/**'
   artifacts: "/artifacts"
 
@@ -17,10 +17,11 @@ jobs:
 
   setup_project:
     stage: setup
-    image: "hhhly/bst-base-image"
+    image: java:latest
     commands:
-      - "echo 'Cloning the repository'"
-      - "git clone https://github.com/Lynn-Hu-D/TestCICDPipelines.git /workspace"
+      - "echo 'Installing dependencies'"
+      # Install Git, OpenJDK 17 (Java SDK), and Maven
+      - "apt-get update && apt-get install -y git openjdk-17-jdk maven"
     artifacts:
       destination:
         path: "/artifacts"
@@ -39,6 +40,7 @@ jobs:
       upload:
         path:
           - "./BinaryTree/target/*.log"
+    needs: setup_project
 
   unit_test:
     stage: test
