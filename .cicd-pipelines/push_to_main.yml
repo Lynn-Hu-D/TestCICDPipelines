@@ -14,19 +14,31 @@ stages:
   - name: deploy
 
 jobs:
+
+  setup_environment:
+    stage: setup
+    commands:
+      - "echo 'Cloning the repository'"
+      - "git clone ${CI_REPOSITORY_URL} /app"
+      - "echo 'Setting up JDK 17'"
+      - "export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64"
+      - "export PATH=$JAVA_HOME/bin:$PATH"
+      - "java -version"
+
   build_project:
     stage: build
     commands:
       - "echo 'Caching Maven dependencies'"
       - "mkdir -p ~/.m2/repository && echo 'Maven cache ready'"
       - "echo 'Building project'"
-      - "mvn clean install -B -f /app/BinaryTree/pom.xml"
+      - "mvn clean install -B -f ./BinaryTree/pom.xml"
     artifacts:
       destination:
         path: "/artifacts/build-logs"
       upload:
         path:
           - "./BinaryTree/target/*.log"
+    needs: setup_environment
 
   unit_test:
     stage: test
