@@ -17,6 +17,7 @@ jobs:
 
   build_project:
     stage: build
+    image: "hhhly/bst-base-image"
     commands:
       - "echo 'Caching Maven dependencies'"
       - "mkdir -p ~/.m2/repository && echo 'Maven cache ready'"
