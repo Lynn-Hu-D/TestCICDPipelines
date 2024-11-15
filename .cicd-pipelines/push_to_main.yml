@@ -20,7 +20,8 @@ jobs:
       - "echo 'Checking out repository'"
       - "git clone ${CI_REPOSITORY_URL} ."
       - "echo 'Setting up JDK 17'"
-      - "export JAVA_HOME=$(docker-java-home -v 17)"
+      - "apt-get update && apt-get install -y openjdk-17-jdk git"
+      - "export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64"
       - "export PATH=$JAVA_HOME/bin:$PATH"
       - "java -version"
 
