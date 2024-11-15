@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BinaryTree.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Binary Tree Library</a> &gt; <a href="index.source.html" class="el_package">edu.neu.khoury.cs6510.f24.lynnhud</a> &gt; <span class="el_source">BinaryTree.java</span></div><h1>BinaryTree.java</h1><pre class="source lang-java linenums">package edu.neu.khoury.cs6510.f24.lynnhud;
+
+import java.util.LinkedList;
+import java.util.Queue;
+
+/**
+ * A binary tree class with methods for creating and verifying a binary search tree(BST).
+ * finding maximum depth of the tree, getting the maximum value in the tree.
+ */
+public class BinaryTree {
+
+  /**
+   * The root of the binary tree.
+   */
+  public TreeNode root;
+
+  /**
+   * Constructor to create an empty binary tree.
+   */
+<span class="fc" id="L20">  public BinaryTree() {</span>
+<span class="fc" id="L21">    this.root = null;</span>
+<span class="fc" id="L22">  }</span>
+
+  /**
+   * Create a Binary Search tree from a list of integers.
+   *
+   * @param values array of integers.
+   */
+  public void createBinaryTreeFromArray(int[] values) {
+<span class="fc bfc" id="L30" title="All 2 branches covered.">    if (values.length == 0) {</span>
+<span class="fc" id="L31">      return;</span>
+    }
+
+<span class="fc" id="L34">    this.root = new TreeNode(values[0]);</span>
+<span class="fc" id="L35">    Queue&lt;TreeNode&gt; queue = new LinkedList&lt;&gt;();</span>
+<span class="fc" id="L36">    queue.add(root);</span>
+
+<span class="fc" id="L38">    int i = 1;</span>
+<span class="fc bfc" id="L39" title="All 2 branches covered.">    while (i &lt; values.length) {</span>
+<span class="fc" id="L40">      TreeNode current = queue.poll();</span>
+
+<span class="fc" id="L42">      current.left = new TreeNode(values[i++]);</span>
+<span class="fc" id="L43">      queue.add(current.left);</span>
+
+<span class="fc bfc" id="L45" title="All 2 branches covered.">      if (i &lt; values.length) {</span>
+<span class="fc" id="L46">        current.right = new TreeNode(values[i++]);</span>
+<span class="fc" id="L47">        queue.add(current.right);</span>
+      }
+<span class="fc" id="L49">    }</span>
+<span class="fc" id="L50">  }</span>
+
+  /**
+   * A helper method to create a balanced binary tree from a sorted array of integers.
+   *
+   * @param values the sorted array of integers
+   * @param start the start index of the current subarray
+   * @param end the end index of the current subarray
+   * @return the root of the balanced binary tree
+   */
+  private TreeNode createBalancedBinaryTree(int[] values, int start, int end) {
+<span class="fc bfc" id="L61" title="All 2 branches covered.">    if (start &gt; end) {</span>
+<span class="fc" id="L62">      return null;</span>
+    }
+
+<span class="fc" id="L65">    int mid = start + (end - start) / 2;</span>
+<span class="fc" id="L66">    TreeNode node = new TreeNode(values[mid]);</span>
+
+<span class="fc" id="L68">    node.left = createBalancedBinaryTree(values, start, mid - 1);</span>
+<span class="fc" id="L69">    node.right = createBalancedBinaryTree(values, mid + 1, end);</span>
+
+<span class="fc" id="L71">    return node;</span>
+  }
+
+  /**
+   * Create a balanced binary tree from a sorted array of integers.
+   *
+   * @param values a sorted array of integers
+   */
+  public void createBalancedTreeFromSortedArray(int[] values) {
+<span class="fc" id="L80">    this.root = createBalancedBinaryTree(values, 0, values.length - 1);</span>
+<span class="fc" id="L81">  }</span>
+
+
+  /**
+   * A helper method that recursively check if the binary tree is BST.
+   *
+   * @param node a treeNode
+   * @param lo the lower bound of the node values
+   * @param hi the high bound of the node values
+   * @return true if the node is a BST else false
+   */
+  private boolean isBstHelper(TreeNode node, Integer lo, Integer hi) {
+<span class="fc bfc" id="L93" title="All 2 branches covered.">    if (node == null) {</span>
+<span class="fc" id="L94">      return true;</span>
+    }
+<span class="fc bfc" id="L96" title="All 4 branches covered.">    if (node.value &lt; lo || node.value &gt; hi) {</span>
+<span class="fc" id="L97">      return false;</span>
+    }
+<span class="fc bfc" id="L99" title="All 4 branches covered.">    return isBstHelper(node.left, lo, node.value) &amp;&amp; isBstHelper(node.right, node.value, hi);</span>
+  }
+
+  /**
+   * A method to check this binary tree is a BST or not.
+   *
+   * @return true if this binary tree is BST else false
+   */
+  public boolean isBst() {
+<span class="fc" id="L108">    return isBstHelper(this.root, Integer.MIN_VALUE, Integer.MAX_VALUE);</span>
+  }
+
+  /**
+   * A helper method that recursively calculates the depth of the treeNode.
+   *
+   * @param node a treeNode
+   * @return an integer represents the maximum depth of the treeNode
+   */
+  private Integer getMaxDepthHelper(TreeNode node) {
+<span class="fc bfc" id="L118" title="All 2 branches covered.">    if (node == null) {</span>
+<span class="fc" id="L119">      return 0;</span>
+    }
+<span class="fc" id="L121">    int leftDepth = getMaxDepthHelper(node.left);</span>
+<span class="fc" id="L122">    int rightDepth = getMaxDepthHelper(node.right);</span>
+<span class="fc" id="L123">    return 1 + Math.max(leftDepth, rightDepth);</span>
+  }
+
+  /**
+   * A method to get the maximum depth of the binary tree.
+   *
+   * @return an integer that represents the maximum depth of the binary tree
+   */
+  public Integer getMaxDepth() {
+<span class="fc" id="L132">    return getMaxDepthHelper(this.root);</span>
+  }
+
+  /**
+   * A helper method that recursively finds the maximum value of a treeNode.
+   *
+   * @param node a treeNode
+   * @return an integer that represents the maximum value in the treeNode
+   */
+  private Integer findMaxValueHelper(TreeNode node) {
+<span class="fc bfc" id="L142" title="All 2 branches covered.">    if (node == null) {</span>
+<span class="fc" id="L143">      return Integer.MIN_VALUE;</span>
+    }
+<span class="fc" id="L145">    int leftMax = findMaxValueHelper(node.left);</span>
+<span class="fc" id="L146">    int rightMax = findMaxValueHelper(node.right);</span>
+<span class="fc" id="L147">    return Math.max(node.value, Math.max(leftMax, rightMax));</span>
+  }
+
+  /**
+   * A method to find the maximum value inside the binary tree.
+   *
+   * @return an integer that represents the maximum value in the binary tree
+   */
+  public Integer findMaxValue() {
+<span class="fc" id="L156">    return findMaxValueHelper(this.root);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
