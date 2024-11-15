@@ -17,7 +17,7 @@ jobs:
 
   setup_project:
     stage: setup
-    image: java:latest
+    image: java
     commands:
       - "echo 'Installing dependencies'"
       # Install Git, OpenJDK 17 (Java SDK), and Maven
@@ -28,7 +28,7 @@ jobs:
 
   build_project:
     stage: build
-    image: "hhhly/bst-base-image"
+    image: java
     commands:
       - "echo 'Caching Maven dependencies'"
       - "mkdir -p ~/.m2/repository && echo 'Maven cache ready'"
