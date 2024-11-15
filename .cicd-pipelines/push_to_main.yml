@@ -15,14 +15,6 @@ stages:
 
 jobs:
 
-  setup_environment:
-    stage: setup
-    commands:
-      - "echo 'Creating /app directory'"
-      - "mkdir -p /app"
-      - "echo 'Cloning the repository'"
-      - "git clone ${CI_REPOSITORY_URL} /app"
-
   build_project:
     stage: build
     commands:
@@ -36,7 +28,6 @@ jobs:
       upload:
         path:
           - "./BinaryTree/target/*.log"
-    needs: setup_environment
 
   unit_test:
     stage: test
