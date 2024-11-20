@@ -1,1 +1,0 @@
-typeSearchIndex = [{"l":"All Classes and Interfaces","u":"allclasses-index.html"},{"p":"edu.neu.khoury.cs6510.f24.lynnhud","l":"BinaryTree"},{"p":"edu.neu.khoury.cs6510.f24.lynnhud","l":"TreeNode"}];updateSearchResults();

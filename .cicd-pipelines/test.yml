@@ -1,0 +1,126 @@
+name: Push to Main Pipeline
+
+global:
+  registry: "docker.io"
+  image: "gradle:7.6-jdk17"
+  workspace: 'BinaryTree/**'
+  artifacts: "/artifacts"
+
+stages:
+  - name: setup
+  - name: build
+  - name: test
+  - name: doc
+  - name: deploy
+
+jobs:
+
+  setup_project:
+    stage: setup
+    image: "gradle:7.6-jdk17"
+    commands:
+      - "echo 'Setting up project dependencies'"
+      - "gradle dependencies"
+    artifacts:
+      destination:
+        path: "/artifacts"
+
+  build_project:
+    stage: build
+    image: "gradle:7.6-jdk17"
+    commands:
+      - "echo 'Building project and resolving dependencies'"
+      - "gradle build --no-daemon"
+    artifacts:
+      destination:
+        path: "/artifacts/build-logs"
+      upload:
+        path:
+          - "./build/reports/*"
+    needs: setup_project
+
+  unit_test:
+    stage: test
+    commands:
+      - "echo 'Running unit tests'"
+      - "gradle test --no-daemon"
+      - "mkdir -p artifacts/test-results && cp -r ./build/test-results artifacts/test-results"
+    artifacts:
+      destination:
+        path: "/artifacts/test-results"
+      upload:
+        path:
+          - "./build/test-results/*"
+    needs: build_project
+
+  checkstyle:
+    stage: doc
+    commands:
+      - "echo 'Running Checkstyle'"
+      - "gradle checkstyleMain checkstyleTest --no-daemon"
+      - "mkdir -p artifacts/checkstyle-report && cp -r ./build/reports/checkstyle artifacts/checkstyle-report"
+    artifacts:
+      destination:
+        path: "/artifacts/checkstyle-report"
+      upload:
+        path:
+          - "./build/reports/checkstyle/*"
+    needs: build_project
+
+  jacoco:
+    stage: doc
+    commands:
+      - "echo 'Generating Jacoco coverage reports'"
+      - "gradle jacocoTestReport --no-daemon"
+      - "mkdir -p artifacts/jacoco-report && cp -r ./build/reports/jacoco artifacts/jacoco-report"
+    artifacts:
+      destination:
+        path: "/artifacts/jacoco-report"
+      upload:
+        path:
+          - "./build/reports/jacoco/*"
+    allow_failure: true
+    needs: [build_project, unit_test]
+
+  javadoc:
+    stage: doc
+    commands:
+      - "echo 'Generating Javadoc'"
+      - "gradle javadoc --no-daemon"
+      - "mkdir -p artifacts/javadoc && cp -r ./build/docs/javadoc artifacts/javadoc"
+    artifacts:
+      destination:
+        path: "/artifacts/javadoc"
+      upload:
+        path:
+          - "./build/docs/javadoc/*"
+    allow_failure: true
+    needs: build_project
+
+  static-analysis:
+    stage: doc
+    commands:
+      - "echo 'Running static code analysis'"
+      - "gradle checkCode --no-daemon"
+      - "mkdir -p artifacts/static-analysis && cp -r ./build/reports artifacts/static-analysis"
+    artifacts:
+      destination:
+        path: "/artifacts/static-analysis"
+      upload:
+        path:
+          - "./build/reports/*"
+    needs: [build_project, checkstyle]
+
+  package:
+    stage: deploy
+    commands:
+      - "echo 'Packaging the application for deployment'"
+      - "gradle publishToMavenLocal --no-daemon"
+      - "mkdir -p artifacts/package && cp -r ~/.m2/repository/io/github/bill-yuyi artifacts/package"
+    artifacts:
+      destination:
+        path: "/artifacts/package"
+      upload:
+        path:
+          - "./artifacts/package/*"
+    needs: [build_project, unit_test, checkstyle, jacoco, javadoc, static-analysis]
